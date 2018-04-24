@@ -287,7 +287,7 @@ class Application(val actorSystem: ActorSystem, val settings: WavesSettings, con
 
     //on unexpected shutdown
     sys.addShutdownHook {
-      Kamon.shutdown()
+      Await.ready(Kamon.stopAllReporters(), 20.seconds)
       Metrics.shutdown()
       shutdown(utxStorage, network)
     }
@@ -404,7 +404,7 @@ object Application extends ScorexLogging {
     }
 
     val settings = WavesSettings.fromConfig(config)
-    Kamon.start(config)
+    Kamon.reconfigure(config)
     val isMetricsStarted = Metrics.start(settings.metrics)
 
     RootActorSystem.start("wavesplatform", config) { actorSystem =>
