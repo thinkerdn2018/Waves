@@ -70,7 +70,7 @@ object Dependencies {
     kamonModule("core", "1.1.2"),
     kamonModule("system-metrics", "1.0.0"),
     kamonModule("akka-2.4", "1.0.1"),
-    kamonModule("influxdb", "0.6.9"),
+    "io.kamon" %% s"kamon-influxdb" % "1.0.0-4fa32c762f33782653476e7e530a93b2bb08a4c3", // https://github.com/kamon-io/kamon-influxdb/issues/17#issuecomment-374666541
     kamonModule("autoweave", "0.6.5"),
     "org.influxdb" % "influxdb-java" % "2.7"
   ).map(_.exclude("org.asynchttpclient", "async-http-client"))
