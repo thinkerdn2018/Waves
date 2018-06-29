@@ -67,6 +67,39 @@ class TradersTestSuite extends FreeSpec with Matchers with BeforeAndAfterAll wit
       matcherNode.matcherGet("/matcher").getResponseBody.stripPrefix("\"").stripSuffix("\"") shouldBe matcherNode.publicKeyStr
     }
 
+    "tradableBalance should be equals to balance" in {
+      val aliceBalance = aliceNode.accountBalances(aliceNode.address)
+
+      aliceNode.assertAssetBalance(aliceNode.address, bobNewAsset, 0)
+      matcherNode.assertAssetBalance(matcherNode.address, bobNewAsset, 0)
+      bobNode.assertAssetBalance(bobNode.address, bobNewAsset, bobAssetQuantity)
+
+      val order = matcherNode.placeOrder(prepareOrder(aliceNode, matcherNode, bobWavesPair, OrderType.BUY, 0.97.waves * Order.PriceConstant, 123))
+      matcherNode.waitOrderStatus(bobNewAsset, order.message.id, "Accepted")
+      matcherCancelOrder(aliceNode, matcherNode, bobWavesPair, order.message.id).status should be("OrderCanceled")
+
+      val orderA = matcherNode.placeOrder(prepareOrder(aliceNode, matcherNode, bobWavesPair, OrderType.BUY, 0.86.waves * Order.PriceConstant, 123))
+      matcherNode.waitOrderStatus(bobNewAsset, orderA.message.id, "Accepted")
+
+      val aliceReservedBalance = getReservedBalance(aliceNode, matcherNode)
+      val aliceTradableBalance = matcherNode.getTradableBalance(bobNewAsset, "WAVES", aliceNode.address)
+
+      (aliceBalance._1 - aliceReservedBalance.head._2) shouldEqual (aliceTradableBalance("WAVES"))
+
+      val orderB   = prepareOrder(bobNode, matcherNode, bobWavesPair, OrderType.SELL, 0.86.waves * Order.PriceConstant, 123)
+      val bobOrder = matcherNode.placeOrder(orderB)
+      bobOrder.status shouldBe "OrderAccepted"
+
+      matcherNode.waitOrderStatus(bobNewAsset, bobOrder.message.id, "Filled")
+      nodes.waitForHeightArise()
+      matcherNode.getExchangeTransactions(orderA.message.id)
+
+      val aliceBalanceAfterOrder = aliceNode.accountBalances(aliceNode.address)
+      aliceBalanceAfterOrder._1 shouldEqual (aliceTradableBalance("WAVES"))
+      val aliceTradableBalanceAfterOrder = matcherNode.getTradableBalance(bobNewAsset, "WAVES", aliceNode.address)
+      aliceBalanceAfterOrder._1 shouldEqual (aliceTradableBalanceAfterOrder("WAVES"))
+    }
+
     "owner moves assets/waves to another account and order become an invalid" - {
       // Could not work sometimes because of NODE-546
       "order with assets" - {
@@ -213,6 +246,7 @@ class TradersTestSuite extends FreeSpec with Matchers with BeforeAndAfterAll wit
         }
 
       }
+
     }
   }
 
